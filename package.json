@@ -1,0 +1,28 @@
+{
+  "name": "sigmalok-txbuilding",
+  "version": "1.0.0",
+  "description": "TS tool to build and submit sigma lok transactions",
+  "author": "mgpai22",
+  "module": "src/app/main.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/app/main.ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "^3.6.2"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@fleet-sdk/common": "^0.10.0",
+    "@fleet-sdk/compiler": "^0.10.0",
+    "@fleet-sdk/core": "^0.10.0",
+    "@fleet-sdk/crypto": "^0.10.0",
+    "@fleet-sdk/serializer": "^0.10.0",
+    "@fleet-sdk/wallet": "^0.10.0",
+    "type-fest": "^4.41.0"
+  }
+}
