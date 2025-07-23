@@ -37,8 +37,8 @@ async function createBenefactorRedeem() {
     undefined,
     undefined,
     undefined,
-    false,
-    false,
+    true,
+    true,
   );
 
   if (lokUtxos.length === 0) {
@@ -66,16 +66,10 @@ async function createBenefactorRedeem() {
 
   console.log(`keyId: ${Buffer.from(keyId).toString('hex')}`);
 
-  let amountERGNeeded = BigInt(0);
-
-  if (lokUtxo.value - sigFee < SAFE_MIN_BOX_VALUE) {
-    amountERGNeeded = sigFee;
-  }
-
   const inputs = await getInputBoxes(
     nodeProvider,
     [address.toString()],
-    minerFee + amountERGNeeded,
+    minerFee + sigFee,
     [
       {
         tokenId: Buffer.from(keyId).toString('hex'),
@@ -84,9 +78,6 @@ async function createBenefactorRedeem() {
     ],
     false,
   );
-
-  console.log(`designate output value: ${designateOutput.value}`);
-  console.log(`sigmaLokFeeOutput value: ${sigmaLokFeeOutput.value}`);
 
   const tx = await txHelper.buildTransaction(
     blockHeight,
