@@ -58,8 +58,11 @@ export async function getInputBoxes(
             if (need) {
               const remaining = need - BigInt(amount);
               touchesWantedTokens = true;
-              if (remaining <= 0n) tokenReq.delete(tokenId);
-              else tokenReq.set(tokenId, remaining);
+              // if remaining is less than 0, it means we need change box
+              if (remaining <= 0n) {
+                tokenReq.delete(tokenId);
+                hasExtraToken = true;
+              } else tokenReq.set(tokenId, remaining);
             }
 
             if (!requestedIds.has(tokenId)) {
