@@ -76,7 +76,7 @@ async function createBenefactorRedeem() {
         amount: BigInt(1),
       },
     ],
-    false,
+    true,
   );
 
   const tx = await txHelper.buildTransaction(
