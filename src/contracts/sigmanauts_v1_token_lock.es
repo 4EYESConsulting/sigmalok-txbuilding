@@ -14,7 +14,7 @@
     // Registers
     // R4: GroupElement                         BenefactorGE
     // R5: (Coll[Byte], Long)                   (KeyId, KeyAmount) // Empty Coll[Byte]() and 0L initially.
-    // R6: (Long, Long)                         (Deadline, OracleValue) // Deadline must be greater than the creation-height of the token lock box. OracleValue can be set to any valid Long value, if oracle option is not used this will be determined by OracleNFT.
+    // R6: (Int, Long)                          (Deadline, OracleValue) // Deadline must be greater than the creation-height of the token lock box. OracleValue can be set to any valid Long value, if oracle option is not used this will be determined by OracleNFT.
     // R7: Coll[GroupElement]                   Designates // Empty Coll[GroupElement]() initially.
     // R8: (Coll[Byte], Boolean)                (OracleNFT, isGreaterThan) // The tuple can contain an empty Coll[Coll[Byte]]() as the first argument.
     // R9: (Coll[Coll[Byte]], Long)             (Coll(ContractNameBytes, SigmanautsFeeAddressBytesHash), SigmanautsFee)
@@ -25,8 +25,8 @@
     // Description: The benefactor will create keys that can be used to redeem funds from the token lock box.
     //              An arbitrary amount of keys can be minted and each will have the same token id. 
     //              Redeeming is an all-or-nothing action.
-    // Inputs: TokenLock, Benefactor
     // Data Inputs: None
+    // Inputs: TokenLock, Benefactor
     // Outputs: TokenLock, Benefactor, SigmanautsFee
     // Context Variables: Action
 
@@ -58,15 +58,13 @@
     // Description: When creating the token lock, it is possible to set the condition for key holder redemption
     //              to depend on some threshold value determined by an oracle datapoint. The contract is
     //              designed to be agnostic to the oracle used, with the only condition being that the datapoint
-    //              must be a valid ErgoScript Numeric type. The condition that the deadline height is reached must also apply.
+    //              must be a Long type. The condition that the deadline height is reached must also apply.
     // DataInputs: OracleDatapoint
     // Inputs: TokenLock, KeyHolder
     // Outputs: KeyHolder, SigmanautsFee
     // Context Variables: Action 
 
     // ===== Compile Time Constants ($) ===== //
-    // None
-    
     // None
     
     // ===== Context Variables (_) ===== //
@@ -87,17 +85,7 @@
         val propBytes: Coll[Byte] = prop.propBytes
         val treeBytes: Coll[Byte] = box.propositionBytes
 
-        if (treeBytes(0) == 0) {
-
-            (treeBytes == propBytes)
-
-        } else {
-
-            // offset = 1 + <number of VLQ encoded bytes to store propositionBytes.size>
-            val offset = if (treeBytes.size > 127) 3 else 2
-            (propBytes.slice(1, propBytes.size) == treeBytes.slice(offset, treeBytes.size))
-
-        }
+        (propBytes.slice(1, propBytes.size) == treeBytes.slice(1, treeBytes.size))
 
     }
 
@@ -180,8 +168,8 @@
     val keyId: Coll[Byte]                           = keyInfo._1
     val keyAmount: Long                             = keyInfo._2
 
-    val protocolValues: Long                        = SELF.R6[(Long, Long)].get
-    val deadline: Long                              = protocolValues._1
+    val protocolValues: (Int, Long)                 = SELF.R6[(Int, Long)].get
+    val deadline: Int                               = protocolValues._1
     val oracleValue: Long                           = protocolValues._2
 
     val designates: Coll[GroupElement]              = SELF.R7[Coll[GroupElement]].get
@@ -198,9 +186,8 @@
     val _action: Int                                = getVar[Int](0).get
 
     val isKeysCreated: Boolean      = (keyAmount > 0L)
-    val isDesignateRedeem: Boolean  = (designates.size > 0)
-    val isOracleRedeem: Boolean     = (oracleNFT.size > 0)
     val isDeadlineReached: Boolean  = (HEIGHT > deadline)
+    val isOracleRedeem: Boolean     = (oracleNFT.size > 0) && (CONTEXT.dataInputs.size >= 1)
 
     if (_action == 1) {
 
@@ -217,9 +204,9 @@
 
                     allOf(Coll(
                         (tokenLockOut.value == SELF.value),
-                        (tokenLockOut.tokens(0) == (tokenLockId, 1L)),
+                        (tokenLockOut.tokens(0)._1 == tokenLockId),
                         (tokenLockOut.R4[GroupElement].get == benefactorGE),
-                        (tokenLockOut.R6[(Long, Long)].get == protocolValues),
+                        (tokenLockOut.R6[(Int, Long)].get == protocolValues),
                         (tokenLockOut.R8[(Coll[Byte], Boolean)].get == oracleInfo),
                         (tokenLockOut.R9[(Coll[Coll[Byte]], Long)].get == contractInfo)
                     ))
@@ -243,6 +230,7 @@
 
                     val validIssuanceMint: Boolean = {
 
+                        // We follow EIP-4 asset standard using the benefator's box.
                         allOf(Coll(
                             (issuanceOut.tokens(0)._1 == SELF.id),
                             (outKeyAmount > 0L)
@@ -254,9 +242,9 @@
 
                     val propAndBox: (SigmaProp, Box) = (benefactorSigmaProp, issuanceOut)
 
-                    isSigmaPropEqualToBoxProp(propAndBox) && // We follow EIP-4 asset standard using the benefator's box.
+                    isSigmaPropEqualToBoxProp(propAndBox) &&
                     validIssuanceUniqueness &&
-                    validIssuanceMint &&
+                    validIssuanceMint && 
                     validKeyInfoUpdate
 
                 }
@@ -309,10 +297,10 @@
             val validSelfRecreation: Boolean = {
 
                 allOf(Coll(
-                    (tokenLockOut.tokens(0) == (tokenLockId, 1L)),
+                    (tokenLockOut.tokens(0)._1 == tokenLockId),
                     (tokenLockOut.R4[GroupElement].get == benefactorGE),
                     (tokenLockOut.R5[(Coll[Byte], Long)].get == keyInfo),
-                    (tokenLockOut.R6[(Long, Long)].get == protocolValues),
+                    (tokenLockOut.R6[(Int, Long)].get == protocolValues),
                     (tokenLockOut.R7[Coll[GroupElement]].get == designates),
                     (tokenLockOut.R8[(Coll[Byte], Boolean)].get == oracleInfo),
                     (tokenLockOut.R9[(Coll[Coll[Byte]], Long)].get == contractInfo)
@@ -356,7 +344,20 @@
 
                 }
 
-                val validOracleRedeem: Boolean = {
+                val validDesignateRedeem: Boolean = {
+
+                        designates.exists({ (designate: GroupElement) => 
+
+                            val designateProp: SigmaProp = proveDlog(designate)
+                            val propAndBox: (SigmaProp, Box) = (designateProp, keyHolderIn)
+
+                            isSigmaPropEqualToBoxProp(propAndBox)
+
+                        })
+
+                }
+
+               val validOracleRedeem: Boolean = {
 
                     if (isOracleRedeem) {
 
@@ -386,32 +387,12 @@
                         false
                     }
 
-                }
-
-                val validDesignateRedeem: Boolean = {
-
-                    if (isDesignateRedeem) {
-
-                        designates.exists({ (designate: GroupElement) => 
-
-                            val designateProp: SigmaProp = proveDlog(designate)
-                            val propAndBox: (SigmaProp, Box) = (designateProp, keyHolderIn)
-
-                            isSigmaPropEqualToBoxProp(propAndBox)
-
-                        })
-
-                    } else {
-                        false
-                    }
-
-                }
+                }                
 
                 val validRedeemOption: Boolean = {
-
-                    validOracleRedeem ||                            // Option 1
-                    isDeadlineReached ||                            // Option 2
-                    validDesignateRedeem                            // Option 3
+  
+                    (isDeadlineReached || validOracleRedeem) ||
+                    validDesignateRedeem
 
                 }
 
