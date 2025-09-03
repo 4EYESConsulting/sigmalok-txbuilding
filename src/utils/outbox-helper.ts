@@ -11,7 +11,7 @@ import {
   type TokenAmount,
 } from '@fleet-sdk/core';
 import { blake2b256, utf8 } from '@fleet-sdk/crypto';
-import { SConstant, SLong, SPair } from '@fleet-sdk/serializer';
+import { SConstant, SInt, SLong, SPair } from '@fleet-sdk/serializer';
 
 export function sigmaLokGenesisOutbox(
   benefactorAddress: ErgoAddress,
@@ -37,7 +37,7 @@ export function sigmaLokGenesisOutbox(
   const registers = {
     R4: SGroupElement(benefactorPk),
     R5: SPair(SColl(SByte, []), SLong(BigInt(0))),
-    R6: SPair(SLong(deadlineHeight), SLong(oracleValue ?? BigInt(0))),
+    R6: SPair(SInt(parseInt(deadlineHeight.toString())), SLong(oracleValue ?? BigInt(0))),
     R7: SColl(SGroupElement, []),
     R8: oracleReg,
     R9: SPair(
